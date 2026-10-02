@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  customer
+  admin
+  support
+}
+
+model User {
+  id          String   @id @default(uuid()) @db.Uuid
+  clerkUserId String   @unique
+  email       String   @unique
+  displayName String?
+  role        UserRole @default(customer)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  orders           Order[]
+  checkoutSessions CheckoutSession[]
+}
+
+enum OrderStatus {
+  pending
+  done
+  failed
+}
+
+model Order {
+  id              String      @id @default(uuid()) @db.Uuid
+  userId          String      @map("user_id") @db.Uuid
+  status          OrderStatus @default(pending)
+  polarCheckoutId String?     @map("polar_checkout_id")
+  polarOrderId    String?     @unique @map("polar_order_id")
+  totalCents      Int         @default(0) @map("total_cents")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  user User @relation(fields: [userId],references: [id],onDelete: Cascade)
+
+  items OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id             String @id @default(uuid()) @db.Uuid
+  orderId        String @db.Uuid
+  productId      String @db.Uuid
+  quantity       Int
+  unitPriceCents Int
+
+  order   Order   @relation(fields: [orderId],references: [id],onDelete: Cascade)
+
+  product Product @relation(fields: [productId],references: [id],onDelete: Restrict)
+}
+
+model Product {
+  id             String  @id @default(uuid()) @db.Uuid
+  slug           String  @unique
+  name           String
+  category       String
+  description    String  @default("")
+  priceCents     Int
+  currency       String  @default("usd")
+  imageUrl       String?
+  imageKitFileId String?
+  active         Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  orderItems OrderItem[]
+}
+
+model CheckoutSession {
+  id              String @id @default(uuid()) @db.Uuid
+  userId          String @db.Uuid
+  polarCheckoutId String @unique
+  lines           Json
+  totalCents      Int    @map("total_cents")
+  currency        String
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId],references: [id],onDelete: Cascade)
+}
