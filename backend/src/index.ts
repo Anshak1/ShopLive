@@ -11,7 +11,9 @@ import { getEnv } from "./lib/env";
 import { clerkWebhookHandler } from "./webhooks/clerk";
 import job from "./lib/cron";
 
-
+import meRouter from "./routes/meRouter";
+import pdtRouter from "./routes/pdtRouter";
+import streamRouter from "./routes/streamRouter"
 
 const env = getEnv();
 const app = express();
@@ -27,7 +29,11 @@ app.get('/health',(_req,res)=>{
     res.json({ok:true})
 })
 
-const publicDir = path.join(process.cwd(), "public");
+app.use('/api/me',meRouter);
+app.use('/api/pdt',pdtRouter);
+app.use("/api/stream", streamRouter);
+
+const publicDir = path.join(process.cwd(), "public"); // find /shoplive/public
 if (fs.existsSync(publicDir)) {
   app.use(express.static(publicDir));
 
